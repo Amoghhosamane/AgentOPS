@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  agentops-postgres:
+    image: postgres:16-alpine
+    container_name: agentops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agentops
+      POSTGRES_PASSWORD: agentops_password_2026
+      POSTGRES_DB: agentops
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentops -d agentops"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  agentops-redis:
+    image: redis:7-alpine
+    container_name: agentops-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  agentops-api:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+    container_name: agentops-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agentops:agentops_password_2026@agentops-postgres:5432/agentops
+      REDIS_URL: redis://agentops-redis:6379/0
+      ENVIRONMENT: production
+      DEBUG: "false"
+    ports:
+      - "8000:8000"
+    depends_on:
+      agentops-postgres:
+        condition: service_healthy
+      agentops-redis:
+        condition: service_healthy
+
+  agentops-web:
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+    container_name: agentops-web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - agentops-api
+
+volumes:
+  pgdata:
+  redisdata:
