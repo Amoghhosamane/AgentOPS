@@ -1,7 +1,7 @@
 """Core configuration settings for AgentOps API service."""
 
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +12,13 @@ class Settings(BaseSettings):
     APP_NAME: str = "AgentOps API"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: Union[bool, str] = False
+
+    @property
+    def is_debug(self) -> bool:
+        if isinstance(self.DEBUG, bool):
+            return self.DEBUG
+        return str(self.DEBUG).lower() in ("true", "1", "yes")
     
     # Security & Auth
     SECRET_KEY: str = "agentops-super-secret-key-change-in-production-2026"
@@ -30,10 +36,20 @@ class Settings(BaseSettings):
     
     # Database Settings
     # Supports postgresql+asyncpg:// or sqlite+aiosqlite:///
+    # Automatically fixes standard postgres:// or postgresql:// URLs (e.g. from Render or Supabase) to postgresql+asyncpg://
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
         "sqlite+aiosqlite:///./agentops.db"
     )
+
+    @property
+    def async_database_url(self) -> str:
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
     
     # Redis Settings
     REDIS_URL: Optional[str] = os.getenv("REDIS_URL", None)

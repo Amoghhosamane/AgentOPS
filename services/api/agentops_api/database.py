@@ -10,14 +10,16 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import declarative_base
 from agentops_api.config import settings
 
+db_url = settings.async_database_url
+
 # Configure async engine
 connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
+if db_url.startswith("sqlite"):
     connect_args["check_same_thread"] = False
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG and not settings.DATABASE_URL.startswith("sqlite"),
+    db_url,
+    echo=settings.is_debug and not db_url.startswith("sqlite"),
     future=True,
     connect_args=connect_args,
     pool_pre_ping=True
