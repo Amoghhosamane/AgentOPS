@@ -5,14 +5,14 @@ __pycache__/
 *.so
 .Python
 env/
+venv/
+.venv/
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -37,8 +37,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Environment & OS
+# Environment & Secrets
 .env
-.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.pfx
+
+# OS
 .DS_Store
 Thumbs.db
